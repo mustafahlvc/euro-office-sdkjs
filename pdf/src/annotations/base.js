@@ -1772,8 +1772,13 @@
     
         // modification date
         if (Flags & (1 << 5)) {
+            // Written above via GetModDate(true) (line ~1575), i.e. a PDF-format
+            // "D:YYYYMMDDHHmmss+ZZ'ZZ'" string, not the millisecond-epoch value
+            // SetModDate expects — must be parsed back or _modDate ends up
+            // holding the formatted string itself.
             let sModDate = memory.GetString();
-            this.SetModDate(sModDate);
+            let oModDate = ParsePDFDate(sModDate);
+            this.SetModDate(oModDate ? oModDate.getTime().toString() : sModDate);
         }
     
         // user ID
@@ -1944,8 +1949,10 @@
     
             let CrDate = null;
             if (memory.annotFlags & (1 << 4)) {
+                // Same PDF-format-string round-trip issue as ModDate above.
                 CrDate = memory.GetString();
-                this.SetCreationDate(CrDate);
+                let oCrDate = ParsePDFDate(CrDate);
+                this.SetCreationDate(oCrDate ? oCrDate.getTime().toString() : CrDate);
             }
     
             let oRefTo = null;

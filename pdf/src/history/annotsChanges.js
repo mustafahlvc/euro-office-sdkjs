@@ -1109,14 +1109,36 @@ CChangesPDFAnnotContents.prototype.private_SetValue = function(Value)
 };
 
 /**
+ * _creationDate is a millisecond-epoch value (13 digits, e.g. "1798838400000")
+ * stored as a string (see CAnnotationBase.prototype.SetCreationDate). It must
+ * NOT extend CChangesBaseLongProperty: that base class round-trips the value
+ * through Writer.WriteLong/Reader.GetLong, which truncates to a 32-bit signed
+ * int (AscCommon.CMemory, common/Drawings/Metafile.js) — silently discarding
+ * the high bits of any 13-digit ms timestamp and corrupting it into a
+ * plausible-looking but wrong date the moment this change round-trips through
+ * the binary changes journal (e.g. on the next save). CChangesBaseDoubleProperty
+ * is equally unsafe here: this codebase's Writer.WriteDouble (same CMemory
+ * class) is a lossy 5-decimal-digit fixed-point encoding scaled into that same
+ * 32-bit int, not a full IEEE-754 double. CChangesBaseStringProperty
+ * (WriteString2/GetString2) is lossless for an arbitrary-length numeric
+ * string and is exactly the pattern CChangesPDFAnnotUserId below already uses.
+ *
+ * IMPORTANT: every consumer that writes OR reads this exact binary journal
+ * format must be rebuilt/redeployed together — x2t/FileConverter runs its own
+ * separate embedded JS engine (core/DesktopEditor/doctrenderer, configured via
+ * server/FileConverter/bin/DoctRenderer.config's <sdkjs> path) that parses the
+ * SAME stream. A version mismatch between the browser-facing bundle and the
+ * x2t-side copy desyncs the whole record (GetString2's length-prefixed read
+ * misinterprets unrelated bytes as a huge length, fails its bounds check, and
+ * silently returns "" — manifesting as a blank date, not just a wrong one).
  * @constructor
- * @extends {AscDFH.CChangesBaseLongProperty}
+ * @extends {AscDFH.CChangesBaseStringProperty}
  */
 function CChangesPDFAnnotCreationDate(Class, Old, New, Color)
 {
-	AscDFH.CChangesBaseLongProperty.call(this, Class, Old, New, Color);
+	AscDFH.CChangesBaseStringProperty.call(this, Class, Old, New, Color);
 }
-CChangesPDFAnnotCreationDate.prototype = Object.create(AscDFH.CChangesBaseLongProperty.prototype);
+CChangesPDFAnnotCreationDate.prototype = Object.create(AscDFH.CChangesBaseStringProperty.prototype);
 CChangesPDFAnnotCreationDate.prototype.constructor = CChangesPDFAnnotCreationDate;
 CChangesPDFAnnotCreationDate.prototype.Type = AscDFH.historyitem_Pdf_Annot_Creation_Date;
 CChangesPDFAnnotCreationDate.prototype.private_SetValue = function(Value)
@@ -1126,14 +1148,19 @@ CChangesPDFAnnotCreationDate.prototype.private_SetValue = function(Value)
 };
 
 /**
+ * _modDate is the same millisecond-epoch string as _creationDate above — see
+ * that comment for why this must be CChangesBaseStringProperty, not
+ * CChangesBaseLongProperty/CChangesBaseDoubleProperty, and why every consumer
+ * of this binary format (including x2t's separate embedded JS engine) must be
+ * rebuilt together.
  * @constructor
- * @extends {AscDFH.CChangesBaseLongProperty}
+ * @extends {AscDFH.CChangesBaseStringProperty}
  */
 function CChangesPDFAnnotModDate(Class, Old, New, Color)
 {
-	AscDFH.CChangesBaseLongProperty.call(this, Class, Old, New, Color);
+	AscDFH.CChangesBaseStringProperty.call(this, Class, Old, New, Color);
 }
-CChangesPDFAnnotModDate.prototype = Object.create(AscDFH.CChangesBaseLongProperty.prototype);
+CChangesPDFAnnotModDate.prototype = Object.create(AscDFH.CChangesBaseStringProperty.prototype);
 CChangesPDFAnnotModDate.prototype.constructor = CChangesPDFAnnotModDate;
 CChangesPDFAnnotModDate.prototype.Type = AscDFH.historyitem_Pdf_Annot_Mod_Date;
 CChangesPDFAnnotModDate.prototype.private_SetValue = function(Value)
