@@ -4412,6 +4412,16 @@ function BinaryPPTYLoader()
                                     s.Seek2(_end_rec4);
                                     break;
                                 }
+                                case 2:
+                                {
+                                    this.ReadModernCommentReplies(_comment);
+                                    break;
+                                }
+                                case 100:
+                                {
+                                    this.ReadModernCommentAttributes(_comment);
+                                    break;
+                                }
                                 default:
                                 {
                                     s.SkipRecord();
@@ -4437,6 +4447,85 @@ function BinaryPPTYLoader()
         }
 
         s.Seek2(end2);
+    };
+
+    // PPTX::Logic::Comment record 100 (p188:cm attributes)
+    this.ReadModernCommentAttributes = function(_comment)
+    {
+        var s = this.stream;
+        var _end_rec = s.cur + s.GetULong() + 4;
+        s.Skip2(1); // start attributes
+        while (true)
+        {
+            var _at = s.GetUChar();
+            if (_at == g_nodeAttributeEnd)
+                break;
+
+            switch (_at)
+            {
+                case 2: { _comment.AuthorGuid = s.GetString2(); break; }
+                case 3: { _comment.Status = s.GetString2(); break; }
+                case 8: { s.GetULong(); break; }
+                default: { s.GetString2(); break; }
+            }
+        }
+        s.Seek2(_end_rec);
+    };
+
+    // PPTX::Logic::CommentReplyList (p188:replyLst)
+    this.ReadModernCommentReplies = function(_comment)
+    {
+        var s = this.stream;
+        var _end_rec = s.cur + s.GetULong() + 4;
+        while (s.cur < _end_rec)
+        {
+            var _rec = s.GetUChar();
+            if (0 !== _rec)
+            {
+                s.SkipRecord();
+                continue;
+            }
+
+            s.Skip2(4); // len
+            var lCount = s.GetULong();
+            for (var i = 0; i < lCount; i++)
+            {
+                s.Skip2(1); // type
+                var _end_rec2 = s.cur + s.GetULong() + 4;
+                var _reply = new AscCommon.CWriteCommentData();
+
+                s.Skip2(1); // start attributes
+                while (true)
+                {
+                    var _at = s.GetUChar();
+                    if (_at == g_nodeAttributeEnd)
+                        break;
+
+                    var _val = s.GetString2();
+                    if (0 === _at) _reply.AuthorGuid = _val;
+                    else if (2 === _at) _reply.WriteTime = _val;
+                }
+
+                while (s.cur < _end_rec2)
+                {
+                    if (0 === s.GetUChar())
+                    {
+                        var _txBody = this.ReadTextBody(null);
+                        if (_txBody.content)
+                            _reply.WriteText = _txBody.content.GetText({ParaSeparator: "\n", Numbering: false}).replace(/\n$/, "");
+                    }
+                    else
+                    {
+                        s.SkipRecord();
+                    }
+                }
+                s.Seek2(_end_rec2);
+
+                _reply.Calculate2();
+                _comment.Replies.push(_reply);
+            }
+        }
+        s.Seek2(_end_rec);
     };
 
     this.ReadTransition = function()

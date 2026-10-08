@@ -432,9 +432,23 @@ function (window, undefined) {
 		this.AdditionalData = "";
 		this.timeZoneBias = null;
 
+		// modern (p188) comments: author GUID, status and replies (as CWriteCommentData)
+		this.AuthorGuid = "";
+		this.Status = "";
+		this.Replies = [];
+
 		this.x = 0;
 		this.y = 0;
 	}
+
+	CWriteCommentData.prototype.GetAuthorName = function (authors) {
+		for (var k in authors) {
+			var author = authors[k];
+			if (this.AuthorGuid ? this.AuthorGuid === author.Guid : this.WriteAuthorId == author.Id)
+				return author.Name;
+		}
+		return "";
+	};
 
 	CWriteCommentData.prototype.Calculate = function () {
 		this.WriteTime = new Date(this.Data.m_sTime - 0).toISOString().slice(0, 19) + 'Z';
@@ -532,6 +546,7 @@ function (window, undefined) {
 		this.Id = 0;
 		this.LastId = 0;
 		this.Initials = "";
+		this.Guid = "";
 	}
 
 	AscFormat.InitClass(CCommentAuthor, AscFormat.CBaseNoIdObject, 0);

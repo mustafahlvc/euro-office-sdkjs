@@ -16056,7 +16056,8 @@
 													_author.Initials = s.GetString2();
 													break;
 												case 5:
-													let id__ = s.GetString2();
+													// modern (p188) authors have only this GUID id, numeric Id stays 0
+													_author.Guid = s.GetString2();
 													break;
 												case 6:
 													let userId__ = s.GetString2();

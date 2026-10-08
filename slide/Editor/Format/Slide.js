@@ -2179,7 +2179,7 @@ function fLoadComments(oObject, authors)
             var commentData = new AscCommon.CCommentData();
 
             commentData.m_sText = _wc.WriteText;
-            commentData.m_sUserId = ("" + _wc.WriteAuthorId);
+            commentData.m_sUserId = _wc.AuthorGuid || ("" + _wc.WriteAuthorId);
             commentData.m_sUserName = "";
             commentData.m_sTime = _wc.WriteTime;
             commentData.m_nTimeZoneBias = _wc.timeZoneBias;
@@ -2187,14 +2187,7 @@ function fLoadComments(oObject, authors)
                 commentData.m_sOOTime = (parseInt(commentData.m_sTime) + commentData.m_nTimeZoneBias * 60000) + "";
             }
 
-            for (var k in authors)
-            {
-                if (_wc.WriteAuthorId == authors[k].Id)
-                {
-                    commentData.m_sUserName = authors[k].Name;
-                    break;
-                }
-            }
+            commentData.m_sUserName = _wc.GetAuthorName(authors);
 
             //if ("" != commentData.m_sUserName)
             {
@@ -2203,6 +2196,19 @@ function fLoadComments(oObject, authors)
                 _comments_data_author_id.push(_wc.WriteAuthorId);
 
                 _wc.ParceAdditionalData(commentData);
+
+                if ("resolved" === _wc.Status)
+                    commentData.m_bSolved = true;
+                for (var r = 0; r < _wc.Replies.length; r++)
+                {
+                    var _reply = _wc.Replies[r];
+                    var replyData = new AscCommon.CCommentData();
+                    replyData.m_sText = _reply.WriteText;
+                    replyData.m_sUserId = _reply.AuthorGuid;
+                    replyData.m_sUserName = _reply.GetAuthorName(authors);
+                    replyData.m_sTime = _reply.WriteTime;
+                    commentData.m_aReplies.push(replyData);
+                }
 
                 var comment = new AscCommon.CComment(oComments, new AscCommon.CCommentData());
                 comment.setPosition(_wc.x / 22.66, _wc.y / 22.66);
@@ -2222,14 +2228,7 @@ function fLoadComments(oObject, authors)
                 commentData.m_sOOTime = (parseInt(commentData.m_sTime) + commentData.m_nTimeZoneBias * 60000) + "";
             }
 
-            for (var k in authors)
-            {
-                if (_wc.WriteAuthorId == authors[k].Id)
-                {
-                    commentData.m_sUserName = authors[k].Name;
-                    break;
-                }
-            }
+            commentData.m_sUserName = _wc.GetAuthorName(authors);
 
             _wc.ParceAdditionalData(commentData);
 
