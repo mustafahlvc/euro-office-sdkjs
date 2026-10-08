@@ -2174,7 +2174,8 @@ function fLoadComments(oObject, authors)
     {
         var _wc = oObject.writecomments[i];
 
-        if (0 == _wc.WriteParentAuthorId || 0 == _wc.WriteParentCommentId)
+        // PowerPoint numbers legacy authors from 0, so only the 1-based parent idx marks a reply
+        if (0 == _wc.WriteParentCommentId)
         {
             var commentData = new AscCommon.CCommentData();
 
